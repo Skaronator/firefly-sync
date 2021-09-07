@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"hhbsync/internal/config"
 	"hhbsync/internal/csv"
 	"hhbsync/internal/firefly"
@@ -28,12 +29,19 @@ func main() {
 
 	config := config.GetConfig(configFile)
 	transactions := csv.LoadTransactions(csvFile)
+	client := firefly.NewClient(config.URL, config.Token)
 
 	for _, transaction := range transactions {
 		outputTransaction := firefly.ProcessTransaction(transaction, config.Rules)
+		if !dryRun {
+			err := client.PushTransaction(outputTransaction)
+			fmt.Println(err)
+		}
+
 		if noMatch && outputTransaction.RuleMatch {
 			continue
 		}
+
 		helper.PrintTransaction(transaction, outputTransaction)
 	}
 }

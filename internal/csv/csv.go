@@ -1,6 +1,9 @@
 package csv
 
 import (
+	"crypto/md5"
+	"encoding/hex"
+	"fmt"
 	"os"
 	"time"
 
@@ -26,6 +29,13 @@ type CsvTransaction struct {
 	Amount          float64  `csv:"Betrag (EUR)"`
 	ForeignAmount   float64  `csv:"Betrag (Fremdwährung)"`
 	ForeignCurrency string   `csv:"Fremdwährung"`
+	Hash            string
+}
+
+func getMD5Hash(text string) string {
+	hasher := md5.New()
+	hasher.Write([]byte(text))
+	return hex.EncodeToString(hasher.Sum(nil))
 }
 
 func LoadTransactions(path string) []CsvTransaction {
@@ -38,6 +48,25 @@ func LoadTransactions(path string) []CsvTransaction {
 
 	if err := gocsv.UnmarshalFile(csvFile, &transactions); err != nil {
 		panic(err)
+	}
+
+	for i, transaction := range transactions {
+
+		hash := transaction.Date.Format("2006-01-02")
+		hash += transaction.Reciever
+		hash += transaction.IBAN
+		hash += transaction.TransactionType
+		hash += transaction.Reference
+
+		// If ForeignAmount exist we'll use it since it doesn't change close to transaction date
+		// Sometimes ForeignAmount and Amount are the same when its a EUR IBAN transaction
+		if transaction.ForeignAmount != transaction.Amount {
+			hash += fmt.Sprintf("%f", transaction.ForeignAmount)
+		} else {
+			hash += fmt.Sprintf("%f", transaction.Amount)
+		}
+
+		transactions[i].Hash = getMD5Hash(hash)
 	}
 
 	return transactions

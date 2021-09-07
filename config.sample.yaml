@@ -1,4 +1,5 @@
 url: https://url.to.firefly
+token: personal-access-token
 
 # rules which match against the csv file.
 # source and destination should always be as if you spend the money
