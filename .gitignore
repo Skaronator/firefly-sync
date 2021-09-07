@@ -1,3 +1,4 @@
 *.csv
 *.sh
+*.log
 config.yaml

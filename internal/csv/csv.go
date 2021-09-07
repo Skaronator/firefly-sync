@@ -16,7 +16,7 @@ func (date *DateTime) UnmarshalCSV(csv string) (err error) {
 	return err
 }
 
-type Transaction struct {
+type CsvTransaction struct {
 	Date            DateTime `csv:"Datum"`
 	Reciever        string   `csv:"Empfänger"`
 	IBAN            string   `csv:"Kontonummer"`
@@ -28,8 +28,8 @@ type Transaction struct {
 	ForeignCurrency string   `csv:"Fremdwährung"`
 }
 
-func LoadTransactions(path string) []Transaction {
-	transactions := []Transaction{}
+func LoadTransactions(path string) []CsvTransaction {
+	transactions := []CsvTransaction{}
 	csvFile, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, os.ModePerm)
 	if err != nil {
 		panic(err)

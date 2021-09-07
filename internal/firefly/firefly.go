@@ -8,8 +8,9 @@ import (
 	"regexp"
 )
 
-type Transaction struct {
-	Date            string
+type FireflyTransaction struct {
+	RuleMatch       bool         // indicate if a rule was matched against this transaction
+	Date            csv.DateTime // TODO: Avoid reusing from csv
 	Amount          string
 	ForeignAmount   string
 	ForeignCurrency string
@@ -20,7 +21,7 @@ type Transaction struct {
 	DestinationName string
 }
 
-func matchRule(transaction csv.Transaction, rules []config.Rule) config.RuleData {
+func matchRule(transaction csv.CsvTransaction, rules []config.Rule) config.RuleData {
 	//match against IBAN first since it's the most specific
 	for _, rule := range rules {
 		if rule.Match.IBAN == "" || transaction.IBAN == "" {
@@ -48,9 +49,9 @@ func matchRule(transaction csv.Transaction, rules []config.Rule) config.RuleData
 	return config.RuleData{}
 }
 
-func ProcessTransaction(inputTransaction csv.Transaction, rules []config.Rule) Transaction {
-	var outputTransaction Transaction
-	outputTransaction.Date = inputTransaction.Date.Format("2006-01-02T15:04:05-0700")
+func ProcessTransaction(inputTransaction csv.CsvTransaction, rules []config.Rule) FireflyTransaction {
+	var outputTransaction FireflyTransaction
+	outputTransaction.Date = inputTransaction.Date
 	outputTransaction.Amount = fmt.Sprintf("%.2f", math.Abs(inputTransaction.Amount))
 	outputTransaction.Description = inputTransaction.Reciever
 
@@ -64,6 +65,8 @@ func ProcessTransaction(inputTransaction csv.Transaction, rules []config.Rule) T
 
 	rule := matchRule(inputTransaction, rules)
 	if rule != (config.RuleData{}) {
+		outputTransaction.RuleMatch = true
+
 		if rule.Internal {
 			outputTransaction.Type = "transfer"
 		}
