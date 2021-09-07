@@ -1,0 +1,11 @@
+url: https://url.to.firefly
+
+# rules which match against the csv file.
+# source and destination should always be as if you spend the money
+# if you recieve money (postive number), it'll automatically swap source and destination
+rules:
+- match:
+    reciever: '(?i)(AMZN Mktp|AMZ\*AMAZON)'
+  data:
+    source: Bank
+    destination: Amazon
