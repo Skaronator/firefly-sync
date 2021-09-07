@@ -8,23 +8,25 @@ import (
 
 type Config struct {
 	URL   string `yaml:"url"`
-	Rules []Rule `json:"rules"`
+	Rules []Rule `yaml:"rules"`
 }
 
 type Rule struct {
-	Data  RuleData  `json:"data"`
-	Match RuleMatch `json:"match"`
+	Data  RuleData  `yaml:"data"`
+	Match RuleMatch `yaml:"match"`
 }
 
 type RuleData struct {
-	Internal    bool   `json:"internal"`
-	Destination string `json:"destination"`
-	Source      string `json:"source"`
+	Internal    bool   `yaml:"internal"`
+	Destination string `yaml:"destination"`
+	Source      string `yaml:"source"`
+	Category    string `yaml:"category"`
+	Description string `yaml:"description"`
 }
 
 type RuleMatch struct {
-	Reciever string `json:"reciever,omitempty"`
-	IBAN     string `json:"iban,omitempty"`
+	Reciever string `yaml:"reciever,omitempty"`
+	IBAN     string `yaml:"iban,omitempty"`
 }
 
 func GetConfig(path string) Config {

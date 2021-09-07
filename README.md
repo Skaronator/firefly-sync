@@ -35,7 +35,9 @@ The data section is used to set the fields of the transaction for Firefly III. T
 
 * **source**: The source of the transaction.
 * **destination**: The destination of the transaction.
-* **internal**: Flag to indicate if the transaction is internal, eg. from bank account to another bank account you own. (type "transfer" in Firefly III)
+* **internal**: Flag to indicate if the transaction is internal, eg. from bank account to another bank account you own. (type "transfer" in Firefly III) (Not required)
+* **category**: Category of the transaction. (Not required)
+* **description**: Description of the transaction.  (Not required)
 
 ### Rule design
 
@@ -52,4 +54,4 @@ rules:
     destination: 'Company Name'
 ```
 
-The `sourye` is your own bank account and the `destination` is the company you work for. The rule will automatically swap the source and destination if you recieve money which means that `source` will be the company and `destination` will be your own bank account.
+The `source` is your own bank account and the `destination` is the company you work for. The rule will automatically swap the source and destination if you recieve money which means that `source` will be the company and `destination` will be your own bank account.

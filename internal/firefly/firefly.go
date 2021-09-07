@@ -16,7 +16,7 @@ type FireflyTransaction struct {
 	ForeignCurrency string
 	Type            string
 	Description     string
-	Category        string
+	CategoryName    string
 	SourceName      string
 	DestinationName string
 }
@@ -53,7 +53,7 @@ func ProcessTransaction(inputTransaction csv.CsvTransaction, rules []config.Rule
 	var outputTransaction FireflyTransaction
 	outputTransaction.Date = inputTransaction.Date
 	outputTransaction.Amount = fmt.Sprintf("%.2f", math.Abs(inputTransaction.Amount))
-	outputTransaction.Description = inputTransaction.Reciever
+	outputTransaction.Description = "Placeholder: " + inputTransaction.Reciever
 
 	withdraw := inputTransaction.Amount < 0
 
@@ -66,6 +66,14 @@ func ProcessTransaction(inputTransaction csv.CsvTransaction, rules []config.Rule
 	rule := matchRule(inputTransaction, rules)
 	if rule != (config.RuleData{}) {
 		outputTransaction.RuleMatch = true
+
+		if rule.Category != "" {
+			outputTransaction.CategoryName = rule.Category
+		}
+
+		if rule.Description != "" {
+			outputTransaction.Description = rule.Description
+		}
 
 		if rule.Internal {
 			outputTransaction.Type = "transfer"

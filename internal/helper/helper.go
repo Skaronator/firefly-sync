@@ -30,6 +30,8 @@ func PrintTransaction(input csv.CsvTransaction, output firefly.FireflyTransactio
 	data = printRow(data, "Reference", input.Reference, "")
 	data = printRow(data, "Source", "", output.SourceName)
 	data = printRow(data, "Destination", "", output.DestinationName)
+	data = printRow(data, "Category", "", output.CategoryName)
+	data = printRow(data, "Description", "", output.Description)
 	data = printRow(data, "Type", "", output.Type)
 	data = printRow(data, "Amount", fmt.Sprintf("%.02f", input.Amount), output.Amount)
 
