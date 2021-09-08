@@ -34,7 +34,7 @@ func main() {
 	for _, transaction := range transactions {
 		outputTransaction := firefly.ProcessTransaction(transaction, config.Rules)
 		if !dryRun {
-			err := client.PushTransaction(outputTransaction)
+			err := client.SyncTransaction(outputTransaction)
 			fmt.Println(err)
 		}
 

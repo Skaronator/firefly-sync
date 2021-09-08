@@ -9,7 +9,9 @@ import (
 	"io/ioutil"
 	"math"
 	"net/http"
+	"net/url"
 	"regexp"
+	"strconv"
 	"time"
 )
 
@@ -17,6 +19,22 @@ type FireflyTransactionRequest struct {
 	ErrorIfDuplicateHash bool                 `json:"error_if_duplicate_hash"`
 	ApplyRules           bool                 `json:"apply_rules"`
 	Transactions         []FireflyTransaction `json:"transactions"`
+}
+
+type FireflyTransactionResponse struct {
+	Data []struct {
+		Type       string `json:"type"`
+		ID         string `json:"id"`
+		Attributes struct {
+			CreatedAt            time.Time            `json:"created_at"`
+			UpdatedAt            time.Time            `json:"updated_at"`
+			User                 string               `json:"user"`
+			ErrorIfDuplicateHash bool                 `json:"error_if_duplicate_hash"`
+			ApplyRules           bool                 `json:"apply_rules"`
+			GroupTitle           string               `json:"group_title"`
+			Transactions         []FireflyTransaction `json:"transactions"`
+		} `json:"attributes"`
+	} `json:"data"`
 }
 
 type FireflyTransaction struct {
@@ -27,10 +45,9 @@ type FireflyTransaction struct {
 	Description     string       `json:"description"`
 	ForeignAmount   string       `json:"foreign_amount"`
 	ForeignCurrency string       `json:"foreign_currency_code"`
-	CategoryName    string       `json:"category_name"`
-	SourceName      string       `json:"source_name"`
-	DestinationName string       `json:"destination_name"`
-	ExternalID      string       `json:"external_id"`
+	Category        string       `json:"category_name"`
+	Source          string       `json:"source_name"`
+	Destination     string       `json:"destination_name"`
 }
 
 func matchRule(transaction csv.CsvTransaction, rules []config.Rule) config.RuleData {
@@ -64,7 +81,6 @@ func matchRule(transaction csv.CsvTransaction, rules []config.Rule) config.RuleD
 func ProcessTransaction(inputTransaction csv.CsvTransaction, rules []config.Rule) FireflyTransaction {
 	var outputTransaction FireflyTransaction
 	outputTransaction.Date = inputTransaction.Date
-	outputTransaction.ExternalID = inputTransaction.Hash
 	outputTransaction.Description = "Placeholder: " + inputTransaction.Reciever
 	outputTransaction.Amount = fmt.Sprintf("%.2f", math.Abs(inputTransaction.Amount))
 
@@ -86,7 +102,7 @@ func ProcessTransaction(inputTransaction csv.CsvTransaction, rules []config.Rule
 		outputTransaction.RuleMatch = true
 
 		if rule.Category != "" {
-			outputTransaction.CategoryName = rule.Category
+			outputTransaction.Category = rule.Category
 		}
 
 		if rule.Description != "" {
@@ -98,13 +114,13 @@ func ProcessTransaction(inputTransaction csv.CsvTransaction, rules []config.Rule
 		}
 
 		// rules are designed to be withdrawls by default
-		outputTransaction.SourceName = rule.Source
-		outputTransaction.DestinationName = rule.Destination
+		outputTransaction.Source = rule.Source
+		outputTransaction.Destination = rule.Destination
 
 		// if it isn't a withdraw we need to swap the source and destination
 		if !withdraw {
-			outputTransaction.SourceName = rule.Destination
-			outputTransaction.DestinationName = rule.Source
+			outputTransaction.Source = rule.Destination
+			outputTransaction.Destination = rule.Source
 		}
 	}
 
@@ -127,6 +143,20 @@ func NewClient(url, token string) *Client {
 	}
 }
 
+func (c *Client) SyncTransaction(transaction FireflyTransaction) error {
+	id, err := c.getTransaction(transaction)
+	if err != nil {
+		return err
+	}
+
+	if id >= 0 {
+		fmt.Println("Transaction already exists, skipping", id)
+		return nil
+	}
+
+	return c.pushTransaction(transaction)
+}
+
 func (c *Client) sendRequest(req *http.Request) (*http.Response, error) {
 	req.Header.Add("Authorization", "Bearer "+c.Token)
 	req.Header.Add("Content-Type", "application/json; charset=UTF-8")
@@ -134,16 +164,51 @@ func (c *Client) sendRequest(req *http.Request) (*http.Response, error) {
 	return c.HTTPClient.Do(req)
 }
 
-func (c *Client) PushTransaction(transaction FireflyTransaction) error {
+// Returns with a Firefly Transaction ID if it found a matching transaction
+func (c *Client) getTransaction(transaction FireflyTransaction) (int, error) {
+	requestUrl := fmt.Sprintf("%s/api/v1/transactions", c.URL)
+	req, err := http.NewRequest(http.MethodGet, requestUrl, nil)
+	if err != nil {
+		return -1, err
+	}
+
+	params := url.Values{}
+	params.Add("start", transaction.Date.Format("2006-01-02"))
+	params.Add("end", transaction.Date.Format("2006-01-02"))
+	req.URL.RawQuery = params.Encode()
+
+	res, err := c.sendRequest(req)
+	if err != nil {
+		return -1, err
+	}
+	defer res.Body.Close()
+
+	var data FireflyTransactionResponse
+	json.NewDecoder(res.Body).Decode(&data)
+
+	for _, ffTransactions := range data.Data {
+		for _, ffTransaction := range ffTransactions.Attributes.Transactions {
+			// TODO make matching logic more robust
+			if ffTransaction.Source == transaction.Source && ffTransaction.Destination == transaction.Destination {
+				id, _ := strconv.Atoi(ffTransactions.ID)
+				return id, nil
+			}
+		}
+	}
+
+	return -1, nil
+}
+
+func (c *Client) pushTransaction(transaction FireflyTransaction) error {
 	requestData := FireflyTransactionRequest{
 		ErrorIfDuplicateHash: true,
 		ApplyRules:           false,
 		Transactions:         []FireflyTransaction{transaction},
 	}
 	data, _ := json.Marshal(requestData)
-	url := fmt.Sprintf("%s/api/v1/transactions", c.URL)
+	requestUrl := fmt.Sprintf("%s/api/v1/transactions", c.URL)
 
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(data))
+	req, err := http.NewRequest(http.MethodPost, requestUrl, bytes.NewBuffer(data))
 	if err != nil {
 		return err
 	}
