@@ -26,7 +26,6 @@ type CsvTransaction struct {
 	Amount          float64  `csv:"Betrag (EUR)"`
 	ForeignAmount   float64  `csv:"Betrag (Fremdwährung)"`
 	ForeignCurrency string   `csv:"Fremdwährung"`
-	Hash            string
 }
 
 func LoadTransactions(path string) []CsvTransaction {
