@@ -81,7 +81,6 @@ func matchRule(transaction csv.CsvTransaction, rules []config.Rule) config.RuleD
 func ProcessTransaction(inputTransaction csv.CsvTransaction, rules []config.Rule) FireflyTransaction {
 	var outputTransaction FireflyTransaction
 	outputTransaction.Date = inputTransaction.Date
-	outputTransaction.Description = "Placeholder: " + inputTransaction.Reciever
 	outputTransaction.Amount = fmt.Sprintf("%.2f", math.Abs(inputTransaction.Amount))
 
 	if inputTransaction.ForeignCurrency != "" {
@@ -122,6 +121,11 @@ func ProcessTransaction(inputTransaction csv.CsvTransaction, rules []config.Rule
 			outputTransaction.Source = rule.Destination
 			outputTransaction.Destination = rule.Source
 		}
+	}
+
+	// If source or destination is empty, use set the reciever as placeholder
+	if outputTransaction.Source == "" || outputTransaction.Destination == "" {
+		outputTransaction.Description = "Placeholder: " + inputTransaction.Reciever
 	}
 
 	return outputTransaction
