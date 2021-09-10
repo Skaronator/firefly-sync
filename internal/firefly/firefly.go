@@ -196,7 +196,9 @@ func (c *Client) getTransaction(transaction FireflyTransaction) (int, error) {
 	for _, ffTransactions := range data.Data {
 		for _, ffTransaction := range ffTransactions.Attributes.Transactions {
 			// TODO make matching logic more robust
-			if ffTransaction.Source == transaction.Source && ffTransaction.Destination == transaction.Destination {
+			ffAmount, _ := strconv.ParseFloat(ffTransaction.Amount, 64)
+			amount, _ := strconv.ParseFloat(transaction.Amount, 64)
+			if ffTransaction.Source == transaction.Source && ffTransaction.Destination == transaction.Destination && ffAmount == amount {
 				id, _ := strconv.Atoi(ffTransactions.ID)
 				return id, nil
 			}
