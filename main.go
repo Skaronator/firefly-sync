@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"hhbsync/internal/config"
 	"hhbsync/internal/csv"
 	"hhbsync/internal/firefly"
@@ -32,8 +33,19 @@ func main() {
 
 	for _, transaction := range transactions {
 		outputTransaction := firefly.ProcessTransaction(transaction, config.Rules, config.Defaults)
+
+		id, err := client.GetTransaction(outputTransaction)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if id >= 0 {
+			fmt.Println("Transaction already exists, skipping", id)
+			continue
+		}
+
 		if !dryRun {
-			err := client.SyncTransaction(outputTransaction)
+			err := client.PushTransaction(outputTransaction)
 			if err != nil {
 				log.Fatal(err)
 			}

@@ -150,20 +150,6 @@ func NewClient(url, token string) *Client {
 	}
 }
 
-func (c *Client) SyncTransaction(transaction FireflyTransaction) error {
-	id, err := c.getTransaction(transaction)
-	if err != nil {
-		return err
-	}
-
-	if id >= 0 {
-		fmt.Println("Transaction already exists, skipping", id)
-		return nil
-	}
-
-	return c.pushTransaction(transaction)
-}
-
 func (c *Client) sendRequest(req *http.Request) (*http.Response, error) {
 	req.Header.Add("Authorization", "Bearer "+c.Token)
 	req.Header.Add("Content-Type", "application/json; charset=UTF-8")
@@ -172,7 +158,7 @@ func (c *Client) sendRequest(req *http.Request) (*http.Response, error) {
 }
 
 // Returns with a Firefly Transaction ID if it found a matching transaction
-func (c *Client) getTransaction(transaction FireflyTransaction) (int, error) {
+func (c *Client) GetTransaction(transaction FireflyTransaction) (int, error) {
 	requestUrl := fmt.Sprintf("%s/api/v1/transactions", c.URL)
 	req, err := http.NewRequest(http.MethodGet, requestUrl, nil)
 	if err != nil {
@@ -208,7 +194,7 @@ func (c *Client) getTransaction(transaction FireflyTransaction) (int, error) {
 	return -1, nil
 }
 
-func (c *Client) pushTransaction(transaction FireflyTransaction) error {
+func (c *Client) PushTransaction(transaction FireflyTransaction) error {
 	requestData := FireflyTransactionRequest{
 		ErrorIfDuplicateHash: false,
 		ApplyRules:           false,
