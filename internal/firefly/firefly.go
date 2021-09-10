@@ -43,8 +43,8 @@ type FireflyTransaction struct {
 	Date            csv.DateTime `json:"date"`
 	Amount          string       `json:"amount"`
 	Description     string       `json:"description"`
-	ForeignAmount   string       `json:"foreign_amount"`
-	ForeignCurrency string       `json:"foreign_currency_code"`
+	ForeignAmount   string       `json:"foreign_amount,omitempty"`
+	ForeignCurrency string       `json:"foreign_currency_code,omitempty"`
 	Category        string       `json:"category_name"`
 	Source          string       `json:"source_name"`
 	Destination     string       `json:"destination_name"`
@@ -78,7 +78,7 @@ func matchRule(transaction csv.CsvTransaction, rules []config.Rule) config.RuleD
 	return config.RuleData{}
 }
 
-func ProcessTransaction(inputTransaction csv.CsvTransaction, rules []config.Rule) FireflyTransaction {
+func ProcessTransaction(inputTransaction csv.CsvTransaction, rules []config.Rule, defaults config.Defaults) FireflyTransaction {
 	var outputTransaction FireflyTransaction
 	outputTransaction.Date = inputTransaction.Date
 	outputTransaction.Description = "Placeholder: " + inputTransaction.Reciever
@@ -88,6 +88,10 @@ func ProcessTransaction(inputTransaction csv.CsvTransaction, rules []config.Rule
 		outputTransaction.ForeignAmount = fmt.Sprintf("%.2f", math.Abs(inputTransaction.ForeignAmount))
 		outputTransaction.ForeignCurrency = inputTransaction.ForeignCurrency
 	}
+
+	// default accounts are designed to be withdrawls by default
+	outputTransaction.Source = defaults.Source
+	outputTransaction.Destination = defaults.Destination
 
 	withdraw := inputTransaction.Amount < 0
 
@@ -101,6 +105,10 @@ func ProcessTransaction(inputTransaction csv.CsvTransaction, rules []config.Rule
 	if rule != (config.RuleData{}) {
 		outputTransaction.RuleMatch = true
 
+		if rule.Internal {
+			outputTransaction.Type = "transfer"
+		}
+
 		if rule.Category != "" {
 			outputTransaction.Category = rule.Category
 		}
@@ -109,19 +117,18 @@ func ProcessTransaction(inputTransaction csv.CsvTransaction, rules []config.Rule
 			outputTransaction.Description = rule.Description
 		}
 
-		if rule.Internal {
-			outputTransaction.Type = "transfer"
+		if rule.Source != "" {
+			outputTransaction.Source = rule.Source
 		}
 
-		// rules are designed to be withdrawls by default
-		outputTransaction.Source = rule.Source
-		outputTransaction.Destination = rule.Destination
-
-		// if it isn't a withdraw we need to swap the source and destination
-		if !withdraw {
-			outputTransaction.Source = rule.Destination
-			outputTransaction.Destination = rule.Source
+		if rule.Destination != "" {
+			outputTransaction.Destination = rule.Destination
 		}
+	}
+
+	// if it isn't a withdraw we need to swap the source and destination
+	if !withdraw {
+		outputTransaction.Source, outputTransaction.Destination = outputTransaction.Destination, outputTransaction.Source
 	}
 
 	return outputTransaction
@@ -201,7 +208,7 @@ func (c *Client) getTransaction(transaction FireflyTransaction) (int, error) {
 
 func (c *Client) pushTransaction(transaction FireflyTransaction) error {
 	requestData := FireflyTransactionRequest{
-		ErrorIfDuplicateHash: true,
+		ErrorIfDuplicateHash: false,
 		ApplyRules:           false,
 		Transactions:         []FireflyTransaction{transaction},
 	}

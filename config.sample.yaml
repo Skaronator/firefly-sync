@@ -1,5 +1,12 @@
+# URL including protocol but without tailing slash of your firefly instance
 url: https://url.to.firefly
+# personal access token
 token: personal-access-token
+
+# Just like rules, if its an deposit source and destination will be swapped
+defaults:
+  source: Bank
+  destination: Other
 
 # rules which match against the csv file.
 # source and destination should always be as if you spend the money

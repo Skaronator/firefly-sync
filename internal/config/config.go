@@ -7,9 +7,10 @@ import (
 )
 
 type Config struct {
-	URL   string `yaml:"url"`
-	Token string `yaml:"token"`
-	Rules []Rule `yaml:"rules"`
+	URL      string   `yaml:"url"`
+	Token    string   `yaml:"token"`
+	Rules    []Rule   `yaml:"rules"`
+	Defaults Defaults `yaml:"defaults"`
 }
 
 type Rule struct {
@@ -28,6 +29,11 @@ type RuleData struct {
 type RuleMatch struct {
 	Reciever string `yaml:"reciever,omitempty"`
 	IBAN     string `yaml:"iban,omitempty"`
+}
+
+type Defaults struct {
+	Destination string `yaml:"destination"`
+	Source      string `yaml:"source"`
 }
 
 func GetConfig(path string) Config {
