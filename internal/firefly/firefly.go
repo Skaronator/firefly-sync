@@ -237,5 +237,7 @@ func (c *Client) PushTransaction(transaction FireflyTransaction) error {
 	}
 	c.MatchedTransactionIDs[id] = true
 
+	fmt.Println("Transaction created with ID: ", id)
+
 	return nil
 }
