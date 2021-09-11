@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"hhbsync/internal/config"
 	"hhbsync/internal/csv"
-	"io/ioutil"
 	"math"
 	"net/http"
 	"net/url"
@@ -15,13 +14,26 @@ import (
 	"time"
 )
 
+type FireflyTransaction struct {
+	RuleMatch       bool
+	Type            string       `json:"type"`
+	Date            csv.DateTime `json:"date"`
+	Amount          string       `json:"amount"`
+	Description     string       `json:"description"`
+	ForeignAmount   string       `json:"foreign_amount,omitempty"`
+	ForeignCurrency string       `json:"foreign_currency_code,omitempty"`
+	Category        string       `json:"category_name"`
+	Source          string       `json:"source_name"`
+	Destination     string       `json:"destination_name"`
+}
+
 type FireflyTransactionRequest struct {
 	ErrorIfDuplicateHash bool                 `json:"error_if_duplicate_hash"`
 	ApplyRules           bool                 `json:"apply_rules"`
 	Transactions         []FireflyTransaction `json:"transactions"`
 }
 
-type FireflyTransactionResponse struct {
+type FireflyTransactionSearchResponse struct {
 	Data []struct {
 		Type       string `json:"type"`
 		ID         string `json:"id"`
@@ -37,17 +49,11 @@ type FireflyTransactionResponse struct {
 	} `json:"data"`
 }
 
-type FireflyTransaction struct {
-	RuleMatch       bool
-	Type            string       `json:"type"`
-	Date            csv.DateTime `json:"date"`
-	Amount          string       `json:"amount"`
-	Description     string       `json:"description"`
-	ForeignAmount   string       `json:"foreign_amount,omitempty"`
-	ForeignCurrency string       `json:"foreign_currency_code,omitempty"`
-	Category        string       `json:"category_name"`
-	Source          string       `json:"source_name"`
-	Destination     string       `json:"destination_name"`
+type FireflyTransactionCreateResponse struct {
+	Data struct {
+		Type string `json:"type"`
+		ID   string `json:"id"`
+	} `json:"data"`
 }
 
 func matchRule(transaction csv.CsvTransaction, rules []config.Rule) config.RuleData {
@@ -135,9 +141,10 @@ func ProcessTransaction(inputTransaction csv.CsvTransaction, rules []config.Rule
 }
 
 type Client struct {
-	URL        string
-	Token      string
-	HTTPClient *http.Client
+	URL                   string
+	Token                 string
+	HTTPClient            *http.Client
+	MatchedTransactionIDs map[int]bool
 }
 
 func NewClient(url, token string) *Client {
@@ -147,6 +154,7 @@ func NewClient(url, token string) *Client {
 		HTTPClient: &http.Client{
 			Timeout: time.Minute,
 		},
+		MatchedTransactionIDs: make(map[int]bool),
 	}
 }
 
@@ -176,16 +184,18 @@ func (c *Client) GetTransaction(transaction FireflyTransaction) (int, error) {
 	}
 	defer res.Body.Close()
 
-	var data FireflyTransactionResponse
+	var data FireflyTransactionSearchResponse
 	json.NewDecoder(res.Body).Decode(&data)
 
 	for _, ffTransactions := range data.Data {
 		for _, ffTransaction := range ffTransactions.Attributes.Transactions {
 			// TODO make matching logic more robust
+			id, _ := strconv.Atoi(ffTransactions.ID)
 			ffAmount, _ := strconv.ParseFloat(ffTransaction.Amount, 64)
 			amount, _ := strconv.ParseFloat(transaction.Amount, 64)
-			if ffTransaction.Source == transaction.Source && ffTransaction.Destination == transaction.Destination && ffAmount == amount {
-				id, _ := strconv.Atoi(ffTransactions.ID)
+			alreadyMatched := c.MatchedTransactionIDs[id]
+			if ffTransaction.Source == transaction.Source && ffTransaction.Destination == transaction.Destination && ffAmount == amount && !alreadyMatched {
+				c.MatchedTransactionIDs[id] = true
 				return id, nil
 			}
 		}
@@ -214,12 +224,18 @@ func (c *Client) PushTransaction(transaction FireflyTransaction) error {
 	}
 	defer res.Body.Close()
 
-	body, _ := ioutil.ReadAll(res.Body)
-	fmt.Println("response Body:", string(body))
+	var body FireflyTransactionCreateResponse
+	json.NewDecoder(res.Body).Decode(&body)
 
 	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code: %d %s", res.StatusCode, string(body))
+		return fmt.Errorf("unexpected status code: %d %s", res.StatusCode, body)
 	}
+
+	id, err := strconv.Atoi(body.Data.ID)
+	if err != nil {
+		return err
+	}
+	c.MatchedTransactionIDs[id] = true
 
 	return nil
 }
