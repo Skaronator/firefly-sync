@@ -1,4 +1,4 @@
-# hhb-sync
+# Firefly-CSV-Sync
 
 HHB Sync is a tool to synchronize transactions from your bank to [Firefly III](https://www.firefly-iii.org/). It works by parsing though a CSV file, applying custom rules to prepopulate the fields of the transactions, and then uploading the transactions to Firefly III.
 

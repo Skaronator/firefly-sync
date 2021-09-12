@@ -1,12 +1,12 @@
 package main
 
 import (
+	"fireflysync/internal/config"
+	"fireflysync/internal/csv"
+	"fireflysync/internal/firefly"
+	"fireflysync/internal/helper"
 	"flag"
 	"fmt"
-	"hhbsync/internal/config"
-	"hhbsync/internal/csv"
-	"hhbsync/internal/firefly"
-	"hhbsync/internal/helper"
 	"log"
 )
 

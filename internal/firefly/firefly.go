@@ -3,9 +3,9 @@ package firefly
 import (
 	"bytes"
 	"encoding/json"
+	"fireflysync/internal/config"
+	"fireflysync/internal/csv"
 	"fmt"
-	"hhbsync/internal/config"
-	"hhbsync/internal/csv"
 	"math"
 	"net/http"
 	"net/url"

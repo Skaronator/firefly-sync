@@ -1,4 +1,4 @@
-module hhbsync
+module fireflysync
 
 go 1.17
 
@@ -10,6 +10,7 @@ require (
 
 require (
 	github.com/kr/pretty v0.1.0 // indirect
-	github.com/mattn/go-runewidth v0.0.9 // indirect
+	github.com/mattn/go-runewidth v0.0.13 // indirect
+	github.com/rivo/uniseg v0.2.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 )

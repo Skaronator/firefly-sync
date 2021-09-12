@@ -1,9 +1,9 @@
 package helper
 
 import (
+	"fireflysync/internal/csv"
+	"fireflysync/internal/firefly"
 	"fmt"
-	"hhbsync/internal/csv"
-	"hhbsync/internal/firefly"
 	"os"
 
 	"github.com/olekukonko/tablewriter"
